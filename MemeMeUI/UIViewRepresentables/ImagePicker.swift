@@ -14,6 +14,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
     //Bound to var in MemeView
     @Binding var imagePicked : UIImage
     @Binding var sourceType: UIImagePickerController.SourceType
+    //@Binding var shareButtonDisabled : Bool
     
     func makeUIViewController(context: Context) -> UIImagePickerController{
         let imagePicker = UIImagePickerController()
@@ -42,6 +43,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
             
             if let image = info[.originalImage] as? UIImage {
                 photoPicker.imagePicked = image
+                //shareButtonDisabled = false
             }else{
                 //return an error or show an alert
             }

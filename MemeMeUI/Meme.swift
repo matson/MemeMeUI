@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-struct Name {
+struct Meme {
     let topText: String
     let bottomText: String
     let originalImage: UIImage

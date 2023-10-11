@@ -16,9 +16,18 @@ struct MemeView: View {
     @State private var bottomText: String = ""
     @State private var imagePicked = UIImage()
     @State private var isShowingPicker = false
-    @State private var cameraButtonDisabled: Bool = false
-    @State private var shareButtonDisabled: Bool = true
+    @State private var isReadyToShare = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
+    @State private var shareButtonDisabled : Bool = true
+    @State private var items: [Any] = []
+    private var cameraButtonDisabled : Bool {
+#if targetEnvironment(simulator)
+        return true
+#else
+        return false
+#endif
+    }
+    
     
     var body: some View {
         
@@ -49,8 +58,11 @@ struct MemeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        share()
-                        canShare()
+                        isReadyToShare = true
+                        items.removeAll()
+                        items.append(generateMemedImage())
+                        
+                        isReadyToShare.toggle()
                     }){
                         Image(systemName: "square.and.arrow.up")
                     }
@@ -64,7 +76,6 @@ struct MemeView: View {
                     HStack{
                         //Camera
                         Button(action: {
-                            fixCamera()
                             isShowingPicker = true
                         }) {
                             Image(systemName: "camera.fill")
@@ -84,36 +95,45 @@ struct MemeView: View {
             }
         }.sheet(isPresented: $isShowingPicker, content: {
             PhotoPicker(imagePicked: $imagePicked, sourceType: $sourceType)
+        }).sheet(isPresented: $isReadyToShare, content: {
+            ShareSheet(items: items)
+        })
+        .onAppear(perform: {
+            //stuff here
         })
     }
     
-    //Helper functions
-    
-    func fixCamera(){
-        #if targetEnvironment(simulator)
-            cameraButtonDisabled = true
-        #else
-            cameraButtonDisabled = false
-        #endif
-    }
-    
-    func canShare(){
+    //Generate a Meme
+    func generateMemedImage() -> UIImage {
         
+        //hide toolBar and NavBar
+        
+        UIGraphicsBeginImageContext(self.view.frame.size)
+        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
+        let memedImage:UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        
+        //show toolbar and navbar
+        
+        return memedImage
     }
+    //Create a meme object
+    func save(){
+        let meme = Meme(topText: topText, bottomText: bottomText, originalImage: imagePicked, memeImage: generateMemedImage())
+    }
+    
     
 }
 
-func save() {
-    print("saved")
-}
-
-func share() {
-    print("share")
-}
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         MemeView()
     }
     
 }
+
+//Left to Do:
+//Share Button.
+//Keyboard Stuff?
+//TextField Font?
 
