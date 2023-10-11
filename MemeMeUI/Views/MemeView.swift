@@ -4,6 +4,9 @@
 //
 //  Created by Tracy Adams on 10/9/23.
 //
+//for Image Picker,
+//you need a coordinator to do all of this
+//UIKit -> Coordinator -> SwiftUI
 
 import SwiftUI
 import UIKit
@@ -11,12 +14,19 @@ import UIKit
 struct MemeView: View {
     @State private var topText: String = ""
     @State private var bottomText: String = ""
+    @State private var imagePicked = UIImage()
+    @State private var isShowingPicker = false
+    @State private var cameraButtonDisabled: Bool = false
+    @State private var shareButtonDisabled: Bool = true
+    @State private var sourceType: UIImagePickerController.SourceType = .camera
     
     var body: some View {
+        
         NavigationStack {
-            
             ZStack{
-                //Image("roses").resizable()
+                Image(uiImage: imagePicked)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
                 VStack{
                     TextField("Top Text", text: $topText)
                         .multilineTextAlignment(.center)
@@ -40,9 +50,11 @@ struct MemeView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         share()
+                        canShare()
                     }){
                         Image(systemName: "square.and.arrow.up")
                     }
+                    .disabled(shareButtonDisabled)
                 }
                 
             }
@@ -50,21 +62,45 @@ struct MemeView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar){
                     HStack{
+                        //Camera
                         Button(action: {
-                            save()
+                            fixCamera()
+                            isShowingPicker = true
                         }) {
                             Image(systemName: "camera.fill")
                         }
+                        .disabled(cameraButtonDisabled)
                         Spacer()
-                        Button("Album"){
-                            print("going to Album")
-                            
+                        //Album
+                        Button(action : {
+                            isShowingPicker = true
+                            sourceType = .photoLibrary
+                        }){
+                            Text("Album")
                         }
+                        
                     }
                 }
             }
-        }
+        }.sheet(isPresented: $isShowingPicker, content: {
+            PhotoPicker(imagePicked: $imagePicked, sourceType: $sourceType)
+        })
     }
+    
+    //Helper functions
+    
+    func fixCamera(){
+        #if targetEnvironment(simulator)
+            cameraButtonDisabled = true
+        #else
+            cameraButtonDisabled = false
+        #endif
+    }
+    
+    func canShare(){
+        
+    }
+    
 }
 
 func save() {
