@@ -9,12 +9,15 @@ import Foundation
 import UIKit
 import SwiftUI
 
+//MARK: - UIImagePickerController for choosing and setting an Image
+
 struct PhotoPicker: UIViewControllerRepresentable {
     
     //Bound to var in MemeView
-    @Binding var imagePicked : UIImage
+    @Binding var imagePicked : UIImage?
     @Binding var sourceType: UIImagePickerController.SourceType
-    //@Binding var shareButtonDisabled : Bool
+    @Binding var shareButtonEnabled: Bool
+   
     
     func makeUIViewController(context: Context) -> UIImagePickerController{
         let imagePicker = UIImagePickerController()
@@ -25,7 +28,14 @@ struct PhotoPicker: UIViewControllerRepresentable {
         return imagePicker
     }
     
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
+        
+        uiViewController.allowsEditing = false
+        uiViewController.sourceType = .photoLibrary
+        //only enable the button if there is an image chosen.
+        shareButtonEnabled = imagePicked != nil
+        
+    }
     
     func makeCoordinator() -> Coordinator {
         return Coordinator(photoPicker: self)
@@ -43,7 +53,6 @@ struct PhotoPicker: UIViewControllerRepresentable {
             
             if let image = info[.originalImage] as? UIImage {
                 photoPicker.imagePicked = image
-                //shareButtonDisabled = false
             }else{
                 //return an error or show an alert
             }

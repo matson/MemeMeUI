@@ -11,7 +11,7 @@ import SwiftUI
 struct MemeMeUIApp: App {
     var body: some Scene {
         WindowGroup {
-            MemeView()
+            MemeSwiftUIView()
         }
     }
 }

@@ -3,23 +3,102 @@
 //  MemeMeUI
 //
 //  Created by Tracy Adams on 10/9/23.
-//
-//for Image Picker,
-//you need a coordinator to do all of this
-//UIKit -> Coordinator -> SwiftUI
 
 import SwiftUI
 import UIKit
 
-struct MemeView: View {
+struct MemeSwiftUIView: View {
+    
     @State private var topText: String = ""
     @State private var bottomText: String = ""
-    @State private var imagePicked = UIImage()
+    @State private var imagePicked: UIImage?
+    @State private var memedImage: UIImage?
     @State private var isShowingPicker = false
     @State private var isReadyToShare = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
-    @State private var shareButtonDisabled : Bool = true
-    @State private var items: [Any] = []
+    @State private var shareButtonEnabled = false
+    
+    //MARK: - The View and Attributes
+    
+    var body: some View {
+        
+        NavigationStack {
+            features
+            //top bar
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            generateMemedImage()
+                            isReadyToShare = true
+                            //activityController(isPresented: $isReadyToShare)
+                            
+                        }){
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .disabled(!shareButtonEnabled)
+                        .sheet(isPresented: $isReadyToShare, content: {
+                            ShareViewController(topText: $topText, bottomText: $bottomText, imagePicked: $imagePicked, memedImage: $memedImage)
+                        })
+                    }
+                    
+                }
+            //bottom bar
+                .toolbar {
+                    ToolbarItemGroup(placement: .bottomBar){
+                        HStack{
+                            //Camera
+                            Button(action: {
+                                isShowingPicker = true
+                            }) {
+                                Image(systemName: "camera.fill")
+                            }
+                            .disabled(cameraButtonDisabled)
+                            Spacer()
+                            //Album
+                            Button(action : {
+                                isShowingPicker = true
+                                sourceType = .photoLibrary
+                            }){
+                                Text("Album")
+                            }
+                            .sheet(isPresented: $isShowingPicker, content: {
+                                PhotoPicker(imagePicked: $imagePicked, sourceType: $sourceType, shareButtonEnabled: $shareButtonEnabled)
+                            })
+                            
+                        }
+                    }
+                }
+        }
+        
+        
+    }
+    //original ImageView and two Textfields:
+    var features: some View {
+        ZStack{
+            Image(uiImage: imagePicked ?? UIImage())
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+            VStack{
+                TextField("Top Text", text: $topText)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.white)
+                    .font(.custom("HelveticaNeue-CondensedBlack", size: 40))
+                    .shadow(color: .black, radius: 9)
+                
+                
+                Spacer()
+                
+                TextField("Bottom Text", text: $bottomText)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.white)
+                    .font(.custom("HelveticaNeue-CondensedBlack", size: 40))
+                    .shadow(color: .black, radius: 9)
+                    
+            }
+        }
+    }
+    
+    //Only disable the camera button if we are using a simulator
     private var cameraButtonDisabled : Bool {
 #if targetEnvironment(simulator)
         return true
@@ -28,112 +107,56 @@ struct MemeView: View {
 #endif
     }
     
+
+    //MARK: -  Helper Functions
     
-    var body: some View {
+    
+    //Instead of using UIGraphicsBeginImageContext in Storyboard, we use UIGraphicsImageRenderer
+    func generateMemedImage() {
+        guard let image = imagePicked else { return }
         
-        NavigationStack {
-            ZStack{
-                Image(uiImage: imagePicked)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                VStack{
-                    TextField("Top Text", text: $topText)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        .foregroundColor(.white)
-                        .font(.largeTitle)
-                        .bold()
-                    
-                    Spacer()
-                    
-                    TextField("Bottom Text", text: $bottomText)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        .foregroundColor(Color.white)
-                        .font(.largeTitle)
-                        .bold()
-                }
-            }
-            //top bar
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        isReadyToShare = true
-                        items.removeAll()
-                        items.append(generateMemedImage())
-                        
-                        isReadyToShare.toggle()
-                    }){
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .disabled(shareButtonDisabled)
-                }
-                
-            }
-            //bottom bar
-            .toolbar {
-                ToolbarItemGroup(placement: .bottomBar){
-                    HStack{
-                        //Camera
-                        Button(action: {
-                            isShowingPicker = true
-                        }) {
-                            Image(systemName: "camera.fill")
-                        }
-                        .disabled(cameraButtonDisabled)
-                        Spacer()
-                        //Album
-                        Button(action : {
-                            isShowingPicker = true
-                            sourceType = .photoLibrary
-                        }){
-                            Text("Album")
-                        }
-                        
-                    }
-                }
-            }
-        }.sheet(isPresented: $isShowingPicker, content: {
-            PhotoPicker(imagePicked: $imagePicked, sourceType: $sourceType)
-        }).sheet(isPresented: $isReadyToShare, content: {
-            ShareSheet(items: items)
-        })
-        .onAppear(perform: {
-            //stuff here
-        })
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+        let memedImage = renderer.image { _ in
+            image.draw(at: CGPoint.zero)
+            
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
+            
+            let memeAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 50),
+                .foregroundColor: UIColor.white,
+                .strokeColor: UIColor.black,
+                .strokeWidth: -5,
+                .paragraphStyle: paragraphStyle
+            ]
+            
+            let topTextRect = CGRect(x: 0, y: 20, width: image.size.width, height: 100)
+            topText.draw(in: topTextRect, withAttributes: memeAttributes)
+            
+            let bottomTextRect = CGRect(x: 0, y: image.size.height - 100, width: image.size.width, height: 100)
+            bottomText.draw(in: bottomTextRect, withAttributes: memeAttributes)
+        }
+        
+        self.memedImage = memedImage
     }
-    
-    //Generate a Meme
-    func generateMemedImage() -> UIImage {
-        
-        //hide toolBar and NavBar
-        
-        UIGraphicsBeginImageContext(self.view.frame.size)
-        view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
-        let memedImage:UIImage = UIGraphicsGetImageFromCurrentImageContext()!
-        UIGraphicsEndImageContext()
-        
-        //show toolbar and navbar
-        
-        return memedImage
-    }
-    //Create a meme object
-    func save(){
-        let meme = Meme(topText: topText, bottomText: bottomText, originalImage: imagePicked, memeImage: generateMemedImage())
-    }
-    
-    
+
 }
+
+//extension MemeSwiftUIView {
+//    func activityController(isPresented: Binding<Bool>) -> some View {
+//        return self
+//            .background {
+//              if isPresented.wrappedValue {
+//                  ShareViewController(topText: $topText, bottomText: $bottomText, imagePicked: $imagePicked, memedImage: $memedImage)
+//              }
+//            }
+//    }
+//}
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        MemeView()
+        MemeSwiftUIView()
     }
     
 }
-
-//Left to Do:
-//Share Button.
-//Keyboard Stuff?
-//TextField Font?
 
